@@ -1,26 +1,121 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Default to Deep Dark Palette */
+  --background: #050505;
+  --foreground: #ffffff;
+  --accent: #3390ec;
+  --accent-foreground: #ffffff;
+  
+  --secondary: #121212;
+  --secondary-foreground: #708499;
+  
+  --border: #1a1a1a;
+  --ring: rgba(51, 144, 236, 0.5);
+  
+  /* Glassmorphism Dark */
+  --glass-bg: rgba(10, 10, 10, 0.85);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-blur: 20px;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-border: var(--border);
+  
+  /* Custom Utilities */
+  --radius-xl: 12px;
+  --radius-2xl: 18px;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-inter), sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Glassmorphism Utility */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border-bottom: 1px solid var(--glass-border);
+}
+
+/* Premium Card Style */
+.premium-card {
+  @apply bg-secondary border border-border/70 rounded-2xl transition-all duration-300;
+}
+
+.premium-card:hover {
+  @apply border-accent/50 shadow-[0_0_20px_rgba(51,144,236,0.15)] transform -translate-y-0.5;
+}
+
+/* Telegram List Hover */
+.list-item-hover {
+  @apply hover:bg-white/5 transition-colors duration-150 cursor-pointer;
+}
+
+/* Snowflake Pattern Background */
+.chat-pattern {
+  background-image: radial-gradient(circle at 2px 2px, rgba(255, 255, 255, 0.05) 1px, transparent 0);
+  background-size: 32px 32px;
+  position: relative;
+}
+
+.chat-pattern::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M50 10L52 14L56 12L54 16L58 18L54 20L56 24L52 22L50 26L48 22L44 24L46 20L42 18L46 16L44 12L48 14L50 10Z' fill='%23ffffff' fill-opacity='0.15'/%3E%3C/svg%3E");
+  background-size: 150px 150px;
+  pointer-events: none;
+  opacity: 0.3;
+}
+
+/* Gradient Depth Overlays (Telegram Style) */
+.gradient-overlay-top {
+  background: linear-gradient(to bottom, #000000 0%, rgba(0, 0, 0, 0.5) 40%, transparent 100%);
+  @apply pointer-events-none;
+}
+
+.gradient-overlay-bottom {
+  background: linear-gradient(to top, #000000 0%, rgba(0, 0, 0, 0.5) 40%, transparent 100%);
+  @apply pointer-events-none;
+}
+
+/* Teal Gradient Bubble (Sent) */
+.bubble-sent {
+  background: linear-gradient(135deg, #2ea6ff 0%, #0088cc 100%);
+  @apply text-white shadow-lg;
+}
+
+/* Dark Grey Bubble (Received) */
+.bubble-received {
+  background: #18191d;
+  @apply text-white shadow-lg border border-white/5;
+}
+
+/* Big Emoji Style */
+.big-emoji {
+  @apply text-[64px] leading-none select-none;
+}
+
+.shadow-glow-emerald {
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
