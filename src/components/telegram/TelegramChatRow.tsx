@@ -17,7 +17,7 @@ interface TelegramChatRowProps {
   time: string
   unreadCount?: number
   avatarColor?: string
-  messenger?: 'tg' | 'ig' | 'web'
+  messenger?: 'tg' | 'ig' | 'wa' | 'web'
   tags?: Tag[]
   status?: 'online' | 'offline'
   notes?: string
@@ -33,6 +33,11 @@ const MessengerIcon = ({ source }: { source?: string }) => {
   if (source === 'ig') return (
     <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-gradient-to-tr from-[#f09433] via-[#dc2743] to-[#bc1888] rounded-full border-2 border-[#111111] flex items-center justify-center shadow-lg">
        <span className="text-[9px] font-black text-white">IG</span>
+    </div>
+  )
+  if (source === 'wa') return (
+    <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-[#25D366] rounded-full border-2 border-[#111111] flex items-center justify-center shadow-lg">
+       <span className="text-[9px] font-black text-white">WA</span>
     </div>
   )
   return (

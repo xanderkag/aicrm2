@@ -97,7 +97,7 @@ export default function TelegramPage() {
         return {
           ...chat,
           tags: hasTag 
-            ? chat.tags.filter(t | t !== tagId) 
+            ? chat.tags.filter(t => t !== tagId) 
             : [...chat.tags, tagId]
         }
       }
