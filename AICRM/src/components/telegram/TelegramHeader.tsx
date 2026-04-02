@@ -4,6 +4,8 @@ import React from 'react'
 import { ChevronDown, Send, Camera, MessageCircle, MoreHorizontal, Globe } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
+import { ProjectSelector } from './ProjectSelector'
+
 export type MessengerSource = 'all' | 'tg' | 'ig' | 'wa'
 
 interface TelegramHeaderProps {
@@ -26,10 +28,7 @@ export const TelegramHeader: React.FC<TelegramHeaderProps> = ({
     <header className="flex flex-col gap-4 px-6 pt-6 sticky top-0 bg-background/80 backdrop-blur-xl z-50 border-b border-white/[0.03] pb-4">
       {/* Search and Project Selector */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5 bg-white/[0.03] px-3 py-1.5 rounded-full border border-white/5 cursor-pointer hover:bg-white/5 transition-colors">
-          <span className="text-[14px] font-black tracking-tight text-foreground">AI-CRM</span>
-          <ChevronDown size={14} className="text-secondary-foreground" />
-        </div>
+        <ProjectSelector />
         
         <div className="flex items-center gap-3">
           <button className="text-secondary-foreground hover:text-white transition-colors">

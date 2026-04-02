@@ -1,8 +1,11 @@
-import { NextResponse } from 'next/server';
-import { query } from '@/lib/db';
+import { NextRequest, NextResponse } from 'next/server';
+import { query, asSchema } from '@/lib/db';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const schema = searchParams.get('schema');
+
     // Standard query for fetching clients and their most recent message
     // Matches the "CLIENT REG" and "INSERT_CLIENT_MSG" nodes from n8n main.json
     const result = await query(`
@@ -13,10 +16,10 @@ export async function GET() {
         m.message as last_message, 
         m.created_at as last_message_time,
         c.meta->>'ai_answer' as ai_answer
-      FROM clients c
+      FROM ${asSchema(schema, 'clients')} c
       LEFT JOIN (
         SELECT DISTINCT ON (client_id) client_id, message, created_at
-        FROM messages
+        FROM ${asSchema(schema, 'messages')}
         ORDER BY client_id, created_at DESC
       ) m ON c.id = m.client_id
       ORDER BY m.created_at DESC NULLS LAST

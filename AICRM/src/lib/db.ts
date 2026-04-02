@@ -14,4 +14,10 @@ export const query = (text: string, params?: any[]) => {
   return pool.query(text, params);
 };
 
+// Helper for dynamic schema mapping
+export const asSchema = (schema: string | null | undefined, table: string) => {
+  const safeSchema = schema && /^[a-zA-Z0-9_]+$/.test(schema) ? schema : 'public';
+  return `"${safeSchema}"."${table}"`;
+};
+
 export default pool;

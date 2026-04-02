@@ -7,8 +7,9 @@ import { ChatMessageBubble, SenderType } from '@/components/chat/ChatMessageBubb
 import { ChatInputBar } from '@/components/chat/ChatInputBar'
 import { MessageActionMenu } from '@/components/chat/MessageActionMenu'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Pin } from 'lucide-react'
+import { Pin, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useProject } from '@/context/ProjectContext'
 
 interface ChatMessage {
   id: string
@@ -22,114 +23,13 @@ interface ChatMessage {
   senderName?: string
 }
 
-const initialMessages: ChatMessage[] = [
-  { 
-    id: '1', 
-    text: 'Hello, I want to clarify about a Thai driving license for a car. What documents do I need to prepare in advance?', 
-    time: '14:20', 
-    isSent: false
-  },
-  { 
-    id: '2', 
-    text: 'Hello Igor! To apply for a Thai driving license, you will need: 1. Passport (with valid non-immigrant visa), 2. Residency Certificate or Yellow Tabien Baan, 3. Medical Certificate (not older than 1 month), 4. Your domestic driving license (if you have one).', 
-    time: '14:21', 
-    isSent: true, 
-    isRead: true,
-    senderType: 'ai',
-    senderName: 'AI Assistant'
-  },
-  { 
-    id: '3', 
-    text: 'Thank you! Where can I get the Residency Certificate? I am staying in Bangkok now.', 
-    time: '14:25', 
-    isSent: false 
-  },
-  { 
-    id: '4', 
-    text: 'In Bangkok, you can get it at the Immigration Office (Chaengwattana) or through your Embassy. We can also assist you with a fast-track residency certificate if needed.', 
-    time: '14:26', 
-    isSent: true, 
-    isRead: true,
-    senderType: 'ai',
-    senderName: 'AI Assistant'
-  },
-  { id: 'date-1', text: 'March 30', time: '', isSent: false, type: 'date' },
-  { 
-    id: '5', 
-    text: 'Can I go there today? I need it urgently.', 
-    time: '10:15', 
-    isSent: false 
-  },
-  { 
-    id: '6', 
-    text: 'I will check the current DLT availability for you Igor. One moment please.', 
-    time: '10:16', 
-    isSent: true, 
-    isRead: true,
-    senderType: 'ai',
-    senderName: 'AI Assistant'
-  },
-  { 
-    id: '7', 
-    text: 'Igor, sorry to interrupt. Today is actually a public holiday in Thailand (Makha Bucha Day), so Immigration and DLT are closed.', 
-    time: '10:18', 
-    isSent: true, 
-    isRead: true,
-    senderType: 'admin',
-    senderName: 'Alexander Liapustin'
-  },
-  { 
-    id: '8', 
-    text: 'Oh, I totally forgot! Thanks for catching that Alexander. When can we proceed?', 
-    time: '10:20', 
-    isSent: false 
-  },
-  { 
-    id: '9', 
-    text: 'I suggest we go on Monday morning. I can arrange a driver to pick you up and we will handle all the paperwork for you.', 
-    time: '10:22', 
-    isSent: true, 
-    isRead: true,
-    senderType: 'admin',
-    senderName: 'Alexander Liapustin'
-  },
-  { 
-    id: '10', 
-    text: 'How much does the VIP fast-track service cost including the driver?', 
-    time: '10:25', 
-    isSent: false 
-  },
-  { 
-    id: '11', 
-    text: 'The comprehensive VIP package (Fast-track Residency Cert + DLT Service + Private Driver) is 3,500 THB. This ensures you get everything done in one morning without queuing. Would you like to proceed?', 
-    time: '10:26', 
-    isSent: true, 
-    isRead: true,
-    senderType: 'ai',
-    senderName: 'AI Assistant'
-  },
-  { 
-    id: '12', 
-    text: 'Yes, please! Let\'s do it.', 
-    time: '10:30', 
-    isSent: false 
-  },
-  { id: '13', text: '🔥', time: '10:30', isSent: false },
-  { 
-    id: '14', 
-    text: 'Great! I will send you the payment details and the list of photos we need from your passport. 🤝', 
-    time: '10:32', 
-    isSent: true, 
-    isRead: false,
-    senderType: 'admin',
-    senderName: 'Alexander Liapustin'
-  },
-]
-
 export default function ChatDetailPage() {
   const params = useParams()
-  const [messages, setMessages] = useState<ChatMessage[]>(initialMessages)
-  const [chatName] = useState('Igor Rogacevich')
+  const id = params?.id as string
+  const { selectedProject } = useProject()
+  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [loading, setLoading] = useState(true)
+  const [chatName, setChatName] = useState('Loading...')
   const scrollRef = useRef<HTMLDivElement>(null)
 
   // Action Menu State
@@ -138,12 +38,46 @@ export default function ChatDetailPage() {
   const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null)
 
   useEffect(() => {
+    const fetchChatData = async () => {
+      if (!id || !selectedProject?.schema_name) return
+      
+      setLoading(true)
+      try {
+        // Fetch messages
+        const response = await fetch(`/api/chat/${id}?schema=${selectedProject.schema_name}`)
+        const data = await response.json()
+        
+        const mappedMessages = data.map((m: any) => ({
+          id: m.id.toString(),
+          text: m.text,
+          time: new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+          isSent: m.type === 'response',
+          isRead: true,
+          senderType: m.type === 'response' ? 'admin' : 'user',
+          senderName: m.sender_name || (m.type === 'response' ? 'Admin' : 'User')
+        }))
+        
+        setMessages(mappedMessages)
+        setChatName(`User ${id}`)
+      } catch (error) {
+        console.error('Failed to fetch chat data:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchChatData()
+  }, [id, selectedProject])
+
+  useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
-  }, [])
+  }, [messages])
 
-  const handleSend = (text: string) => {
+  const handleSend = async (text: string) => {
+    if (!selectedProject?.schema_name) return
+
     const newMessage: ChatMessage = {
       id: Date.now().toString(),
       text,
@@ -153,7 +87,18 @@ export default function ChatDetailPage() {
       senderType: 'admin',
       senderName: 'Alexander Liapustin'
     }
+    
     setMessages(prev => [...prev, newMessage])
+
+    try {
+      await fetch(`/api/chat/${id}?schema=${selectedProject.schema_name}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, senderName: 'Alexander Liapustin' })
+      })
+    } catch (error) {
+      console.error('Failed to send message:', error)
+    }
     
     setTimeout(() => {
       if (scrollRef.current) {
@@ -194,18 +139,25 @@ export default function ChatDetailPage() {
   const pinnedMessages = messages.filter(m => m.pinned)
   const activePin = pinnedMessages[pinnedMessages.length - 1]
 
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen bg-[#050505] gap-4">
+        <Loader2 size={40} className="animate-spin text-accent" />
+        <span className="text-[14px] font-black uppercase tracking-widest text-white/30">Syncing history...</span>
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-col h-screen bg-[#050505] overflow-hidden chat-pattern">
       <ChatHeader 
         name={chatName} 
         status="online" 
-        avatarColor="bg-amber-600"
+        avatarColor="bg-accent/20"
       />
       
-      {/* Top Gradient Shadow */}
       <div className="fixed top-0 left-0 right-0 h-32 gradient-overlay-top z-40" />
 
-      {/* Dynamic Pinned Message */}
       <AnimatePresence>
         {activePin && (
           <motion.div 
@@ -228,7 +180,6 @@ export default function ChatDetailPage() {
         )}
       </AnimatePresence>
       
-      {/* Messages View */}
       <div 
         ref={scrollRef}
         className={cn(
@@ -237,7 +188,11 @@ export default function ChatDetailPage() {
         )}
       >
         <div className="max-w-2xl mx-auto flex flex-col pt-4">
-          {messages.map((msg) => {
+          {messages.length === 0 ? (
+            <div className="text-center py-20 opacity-20">
+              <span className="text-[14px] font-black uppercase tracking-widest">No message history</span>
+            </div>
+          ) : messages.map((msg) => {
             if (msg.type === 'date') {
               return (
                 <div key={msg.id} className="flex justify-center my-4 py-2">
@@ -269,7 +224,6 @@ export default function ChatDetailPage() {
         </div>
       </div>
 
-      {/* Bottom Gradient Shadow */}
       <div className="fixed bottom-0 left-0 right-0 h-32 gradient-overlay-bottom z-40" />
 
       <ChatInputBar onSend={handleSend} />

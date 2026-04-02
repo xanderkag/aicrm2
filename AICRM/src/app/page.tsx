@@ -1,88 +1,79 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Search, Settings, Filter, Plus } from 'lucide-react'
+import { Search, Settings, Filter, Plus, Loader2 } from 'lucide-react'
 import { TelegramHeader, MessengerSource } from '@/components/telegram/TelegramHeader'
+import { cn } from '@/lib/utils'
 import { TelegramChatRow } from '@/components/telegram/TelegramChatRow'
 import { TelegramFloatingNav } from '@/components/telegram/TelegramFloatingNav'
 import { TelegramOrdersList } from '@/components/telegram/TelegramOrdersList'
 import { TelegramClientsList } from '@/components/telegram/TelegramClientsList'
 import { SalesFunnel } from '@/components/telegram/SalesFunnel'
 import { TagSelectionDrawer, CRM_TAGS } from '@/components/telegram/TagSelectionDrawer'
+import { useProject } from '@/context/ProjectContext'
 
-const initialMockChats = [
-  {
-    id: '1',
-    name: 'Igor Rogacevich',
-    message: 'What documents do I need for a Thai residency certificate?',
-    time: '12:45',
-    avatarColor: 'bg-amber-600',
-    messenger: 'tg' as const,
-    unreadCount: 3,
-    status: 'online' as const,
-    notes: 'Inquiry about Thai Driving License (Car). Needs residency cert info.',
-    tags: ['potential', 'warm']
-  },
-  {
-    id: '2',
-    name: 'Max Phuket',
-    message: 'Can I get a bike license with a tourist visa?',
-    time: '11:20',
-    avatarColor: 'bg-indigo-500',
-    messenger: 'ig' as const,
-    unreadCount: 0,
-    status: 'offline' as const,
-    notes: 'Phuket based. Asking about Tourist Visa limitations for DLT.',
-    tags: ['support', 'cold']
-  },
-  {
-    id: '3',
-    name: 'Sarah Mills',
-    message: 'My 2-year temporary license is expiring soon.',
-    time: 'Yesterday',
-    avatarColor: 'bg-rose-500',
-    messenger: 'tg' as const,
-    unreadCount: 12,
-    notes: 'Renewal from 2-year to 5-year license. Needs scheduling.',
-    tags: ['vip', 'recurring']
-  },
-  {
-    id: '4',
-    name: 'David Chen',
-    message: 'Where is the best clinic for a medical certificate in Samui?',
-    time: 'Monday',
-    avatarColor: 'bg-emerald-600',
-    messenger: 'wa' as const,
-    unreadCount: 0,
-    notes: 'DLT Samui area. Direct web inquiry.',
-    tags: ['support']
-  },
-  {
-    id: '5',
-    name: 'WhatsApp Test',
-    message: 'Testing the WhatsApp source filtering!',
-    time: '1m',
-    avatarColor: 'bg-emerald-500',
-    messenger: 'wa' as const,
-    unreadCount: 1,
-    status: 'online' as const,
-    notes: 'New WhatsApp lead.',
-    tags: ['potential']
-  },
-]
+interface Chat {
+  id: string | number
+  name: string
+  last_message: string
+  last_message_time: string
+  messenger: 'tg' | 'ig' | 'wa' | 'web'
+  unreadCount?: number
+  status?: 'online' | 'offline'
+  notes?: string
+  tags: string[]
+  avatarColor?: string
+}
 
 export default function TelegramPage() {
+  const { selectedProject } = useProject()
   const [activeTab, setActiveTab] = useState('chats')
-  const [chats, setChats] = useState(initialMockChats)
+  const [chats, setChats] = useState<Chat[]>([])
+  const [loading, setLoading] = useState(true)
   const [selectedSource, setSelectedSource] = useState<MessengerSource>('all')
   
   // Drawer State
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [currentChatId, setCurrentChatId] = useState<string | null>(null)
 
+  useEffect(() => {
+    const fetchChats = async () => {
+      if (!selectedProject?.schema_name) return
+      
+      setLoading(true)
+      try {
+        const response = await fetch(`/api/chats?schema=${selectedProject.schema_name}`)
+        const data = await response.json()
+        
+        // Map database fields to UI component props
+        const mappedChats = data.map((d: any) => ({
+          id: d.id,
+          name: d.name || `User ${d.messenger_user_id}`,
+          message: d.last_message,
+          time: d.last_message_time ? new Date(d.last_message_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
+          messenger: d.messenger === 'telegram' ? 'tg' : d.messenger === 'instagram' ? 'ig' : 'wa',
+          unreadCount: 0,
+          tags: [],
+          notes: '',
+          avatarColor: 'bg-accent/20'
+        }))
+        
+        setChats(mappedChats)
+      } catch (error) {
+        console.error('Failed to fetch chats:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    if (activeTab === 'chats') {
+      fetchChats()
+    }
+  }, [selectedProject, activeTab])
+
   const handleOpenDrawer = (e: React.MouseEvent, chatId: string) => {
-    e.preventDefault() // Prevent navigation
+    e.preventDefault() 
     e.stopPropagation()
     setCurrentChatId(chatId)
     setIsDrawerOpen(true)
@@ -90,9 +81,8 @@ export default function TelegramPage() {
 
   const handleToggleTag = (tagId: string) => {
     if (!currentChatId) return
-    
     setChats(prev => prev.map(chat => {
-      if (chat.id === currentChatId) {
+      if (chat.id.toString() === currentChatId) {
         const hasTag = chat.tags.includes(tagId)
         return {
           ...chat,
@@ -108,11 +98,11 @@ export default function TelegramPage() {
   const handleNoteChange = (value: string) => {
     if (!currentChatId) return
     setChats(prev => prev.map(chat => 
-      chat.id === currentChatId ? { ...chat, notes: value } : chat
+      chat.id.toString() === currentChatId ? { ...chat, notes: value } : chat
     ))
   }
 
-  const selectedChat = chats.find(c => c.id === currentChatId)
+  const selectedChat = chats.find(c => c.id.toString() === currentChatId)
   const filteredChats = chats.filter(chat => selectedSource === 'all' || chat.messenger === selectedSource)
 
   return (
@@ -135,34 +125,49 @@ export default function TelegramPage() {
                <h2 className="text-[22px] font-black tracking-tight text-foreground">
                   {selectedSource === 'all' ? 'Active Consultations' : `${selectedSource.toUpperCase()} Consultations`}
                </h2>
-               <p className="text-[14px] font-medium text-white/30 uppercase tracking-widest leading-none mt-1 items-center flex gap-2">
-                 <span className="w-2 h-2 bg-emerald-500 rounded-full shadow-glow-emerald" /> 
-                 {filteredChats.length} total chats
-               </p>
+               <div className="flex items-center justify-between mt-1">
+                 <p className="text-[14px] font-medium text-white/30 uppercase tracking-widest leading-none items-center flex gap-2">
+                   <span className={cn("w-2 h-2 rounded-full shadow-glow-emerald", loading ? "bg-amber-500 animate-pulse" : "bg-emerald-500")} /> 
+                   {loading ? 'Syncing...' : `${filteredChats.length} total chats`}
+                 </p>
+                 {loading && <Loader2 size={14} className="animate-spin text-white/20" />}
+               </div>
             </div>
-            <div className="space-y-1">
-              {filteredChats.map((chat) => (
-                <Link key={chat.id} href={`/chat/${chat.id}`}>
-                  <TelegramChatRow
-                    id={chat.id}
-                    name={chat.name}
-                    message={chat.message}
-                    time={chat.time}
-                    unreadCount={chat.unreadCount}
-                    avatarColor={chat.avatarColor}
-                    messenger={chat.messenger}
-                    tags={chat.tags.map(tId => {
-                      const tagInfo = CRM_TAGS.find(t => t.id === tId)
-                      return { label: tagInfo?.label || '', color: tagInfo?.color }
-                    })}
-                    status={chat.status}
-                    notes={chat.notes}
-                    avatar=""
-                    onAddTag={(e) => handleOpenDrawer(e, chat.id)}
-                  />
-                </Link>
-              ))}
-            </div>
+
+            {loading ? (
+              <div className="flex flex-col items-center justify-center py-20 gap-4 opacity-50">
+                <Loader2 size={32} className="animate-spin text-accent" />
+                <span className="text-[12px] font-black uppercase tracking-widest text-white/30 tracking-widest">Fetching Conversations...</span>
+              </div>
+            ) : filteredChats.length === 0 ? (
+              <div className="text-center py-20 opacity-20">
+                <span className="text-[14px] font-black uppercase tracking-widest">No active chats found</span>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {filteredChats.map((chat) => (
+                  <Link key={chat.id} href={`/chat/${chat.id}`}>
+                    <TelegramChatRow
+                      id={chat.id.toString()}
+                      name={chat.name}
+                      message={(chat as any).message}
+                      time={(chat as any).time}
+                      unreadCount={chat.unreadCount || 0}
+                      avatarColor={chat.avatarColor || 'bg-accent/20'}
+                      messenger={chat.messenger}
+                      tags={chat.tags.map(tId => {
+                        const tagInfo = CRM_TAGS.find(t => t.id === tId)
+                        return { label: tagInfo?.label || '', color: tagInfo?.color }
+                      })}
+                      status={chat.status}
+                      notes={chat.notes}
+                      avatar=""
+                      onAddTag={(e) => handleOpenDrawer(e, chat.id.toString())}
+                    />
+                  </Link>
+                ))}
+              </div>
+            )}
           </main>
         </>
       )}
