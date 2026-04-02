@@ -10,13 +10,17 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async signIn({ user }) {
-      // Whitelist only specific email
-      const allowedEmail = 'liapustin@gmail.com';
-      if (user.email === allowedEmail) {
+      const allowedEmails = ['liapustin@gmail.com'];
+      const userEmail = user.email?.toLowerCase();
+      
+      console.log(`Checking access for email: ${userEmail}`);
+      
+      if (userEmail && allowedEmails.includes(userEmail)) {
         return true;
       }
-      console.warn(`Denied access for email: ${user.email}`);
-      return false; // Deny access
+      
+      console.warn(`Access denied: ${userEmail} is not in whitelist`);
+      return false; 
     },
     async session({ session, token }) {
       if (session.user) {

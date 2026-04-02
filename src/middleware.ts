@@ -1,7 +1,18 @@
-export { default } from 'next-auth/middleware';
+import { withAuth } from "next-auth/middleware"
+
+export default withAuth(
+  function middleware() {
+    // Standard next-auth middleware behavior
+  },
+  {
+    callbacks: {
+      authorized: ({ token }) => !!token,
+    },
+  }
+)
 
 export const config = {
-  // Protect all routes except/login and public assets
+  // Protect all routes except /login and public assets
   matcher: [
     /*
      * Match all request paths except for the ones starting with:
