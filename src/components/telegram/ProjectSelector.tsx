@@ -62,7 +62,11 @@ export const ProjectSelector = () => {
               className="absolute top-full left-0 mt-2 min-w-[200px] glass rounded-2xl shadow-2xl z-50 overflow-hidden border border-white/10"
             >
               <div className="py-2 max-h-[300px] overflow-y-auto no-scrollbar">
-                {projects.map((project, index) => (
+                {projects.length === 0 ? (
+                  <div className="px-4 py-8 text-center">
+                    <p className="text-[12px] font-medium text-white/30 truncate">No projects found</p>
+                  </div>
+                ) : projects.map((project, index) => (
                   <button
                     key={project.id}
                     onClick={() => {

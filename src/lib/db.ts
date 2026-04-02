@@ -4,10 +4,10 @@ import { Pool } from 'pg';
 // Vercel Serverless optimization: Reuse the pool across invocations
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL || `postgresql://${process.env.DB_USER}:${process.env.DB_PASSWORD}@${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-  max: 20, // Recommended for serverless DBs like Neon/Supabase
+  ssl: false, // The Hetzner database server does not support SSL connections
+  max: 20, 
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
+  connectionTimeoutMillis: 5000, // Slightly increased for remote connection stability
 });
 
 export const query = (text: string, params?: any[]) => {
