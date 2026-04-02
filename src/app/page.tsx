@@ -11,6 +11,7 @@ import { TelegramOrdersList } from '@/components/telegram/TelegramOrdersList'
 import { TelegramClientsList } from '@/components/telegram/TelegramClientsList'
 import { SalesFunnel } from '@/components/telegram/SalesFunnel'
 import { TagSelectionDrawer, CRM_TAGS } from '@/components/telegram/TagSelectionDrawer'
+import { SettingsView } from '@/components/telegram/SettingsView'
 import { useProject } from '@/context/ProjectContext'
 
 interface Chat {
@@ -237,16 +238,8 @@ export default function TelegramPage() {
       )}
 
       {activeTab === 'settings' && (
-        <main className="mt-12 p-8 text-center text-secondary-foreground relative z-10 animate-in fade-in slide-in-from-bottom-2 duration-300">
-          <div className="flex flex-col items-center gap-6">
-             <div className="w-24 h-24 bg-secondary rounded-[32px] flex items-center justify-center border border-white/5 shadow-inner">
-                <Settings size={48} className="text-accent/80" />
-             </div>
-             <div className="space-y-1">
-                <h2 className="text-xl font-bold text-foreground">System Settings</h2>
-                <p className="text-sm opacity-60 max-w-[240px]">Manage AI Assistant profiles and Bot Token integrations.</p>
-             </div>
-          </div>
+        <main className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <SettingsView />
         </main>
       )}
 
