@@ -54,8 +54,8 @@ export default function TelegramPage() {
           time: d.last_message_time ? new Date(d.last_message_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
           messenger: d.messenger === 'telegram' ? 'tg' : d.messenger === 'instagram' ? 'ig' : 'wa',
           unreadCount: 0,
-          tags: [],
-          notes: '',
+          tags: Array.isArray(d.meta?.tags) ? d.meta.tags : [],
+          notes: d.meta?.notes || '',
           avatarColor: 'bg-accent/20'
         }))
         
@@ -100,6 +100,33 @@ export default function TelegramPage() {
     setChats(prev => prev.map(chat => 
       chat.id.toString() === currentChatId ? { ...chat, notes: value } : chat
     ))
+  }
+
+  const handleCloseDrawer = () => {
+    setIsDrawerOpen(false)
+    // Refresh to show updated tags/notes in list
+    const fetchChats = async () => {
+      if (!selectedProject?.schema_name) return
+      try {
+        const response = await fetch(`/api/chats?schema=${selectedProject.schema_name}`)
+        const data = await response.json()
+        const mappedChats = data.map((d: any) => ({
+          id: d.id,
+          name: d.name || `User ${d.messenger_user_id}`,
+          message: d.last_message,
+          time: d.last_message_time ? new Date(d.last_message_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
+          messenger: d.messenger === 'telegram' ? 'tg' : d.messenger === 'instagram' ? 'ig' : 'wa',
+          unreadCount: 0,
+          tags: Array.isArray(d.meta?.tags) ? d.meta.tags : [],
+          notes: d.meta?.notes || '',
+          avatarColor: 'bg-accent/20'
+        }))
+        setChats(mappedChats)
+      } catch (err) {
+        console.error('Failed to refresh chats:', err)
+      }
+    }
+    fetchChats()
   }
 
   const selectedChat = chats.find(c => c.id.toString() === currentChatId)
@@ -157,7 +184,7 @@ export default function TelegramPage() {
                       messenger={chat.messenger}
                       tags={chat.tags.map(tId => {
                         const tagInfo = CRM_TAGS.find(t => t.id === tId)
-                        return { label: tagInfo?.label || '', color: tagInfo?.color }
+                        return { label: tagInfo?.label || tId, color: tagInfo?.color }
                       })}
                       status={chat.status}
                       notes={chat.notes}
@@ -224,18 +251,24 @@ export default function TelegramPage() {
       )}
 
       <div className="fixed bottom-0 left-0 right-0 z-50">
-        <TelegramFloatingNav activeTab={activeTab} onChange={setActiveTab} />
+        <TelegramFloatingNav 
+          activeTab={activeTab} 
+          onChange={setActiveTab} 
+          unreadCount={filteredChats.length}
+        />
       </div>
 
       {/* Tag Selection Drawer */}
       <TagSelectionDrawer
         isOpen={isDrawerOpen}
-        onClose={() => setIsDrawerOpen(false)}
+        onClose={handleCloseDrawer}
         chatName={selectedChat?.name}
         selectedTags={selectedChat?.tags || []}
         onToggleTag={handleToggleTag}
         noteValue={selectedChat?.notes || ''}
         onNoteChange={handleNoteChange}
+        clientId={currentChatId}
+        schema={selectedProject?.schema_name || null}
       />
     </div>
   )

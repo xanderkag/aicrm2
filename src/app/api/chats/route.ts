@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
         c.messenger, 
         m.message as last_message, 
         m.created_at as last_message_time,
-        c.meta->>'ai_answer' as ai_answer
+        c.meta
       FROM ${asSchema(schema, 'clients')} c
       LEFT JOIN (
         SELECT DISTINCT ON (client_id) client_id, message, created_at

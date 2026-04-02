@@ -26,6 +26,8 @@ interface TagSelectionDrawerProps {
   chatName?: string
   noteValue: string
   onNoteChange: (value: string) => void
+  clientId: string | number | null
+  schema: string | null
 }
 
 export const TagSelectionDrawer: React.FC<TagSelectionDrawerProps> = ({
@@ -35,8 +37,38 @@ export const TagSelectionDrawer: React.FC<TagSelectionDrawerProps> = ({
   onToggleTag,
   chatName,
   noteValue,
-  onNoteChange
+  onNoteChange,
+  clientId,
+  schema
 }) => {
+  const [isSaving, setIsSaving] = React.useState(false)
+
+  const handleSave = async () => {
+    if (!clientId || !schema) return
+    
+    setIsSaving(true)
+    try {
+      const response = await fetch(`/api/clients/${clientId}?schema=${schema}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          meta: {
+            tags: selectedTags,
+            notes: noteValue
+          }
+        })
+      })
+      
+      if (!response.ok) throw new Error('Failed to save')
+      onClose()
+    } catch (error) {
+      console.error('Error saving client data:', error)
+      alert('Failed to save changes. Please try again.')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -77,6 +109,9 @@ export const TagSelectionDrawer: React.FC<TagSelectionDrawerProps> = ({
             </div>
 
             {/* Tags Grid (3xN) */}
+            <div className="mb-2 px-1">
+               <span className="text-[12px] font-bold uppercase tracking-wider text-secondary-foreground">Quick Categorization</span>
+            </div>
             <div className="grid grid-cols-3 gap-3 mb-8">
               {CRM_TAGS.map((tag) => {
                 const isSelected = selectedTags.includes(tag.id)
@@ -125,17 +160,28 @@ export const TagSelectionDrawer: React.FC<TagSelectionDrawerProps> = ({
                     value={noteValue}
                     onChange={(e) => onNoteChange(e.target.value)}
                     placeholder="Enter short note about this client..."
-                    className="w-full bg-secondary/50 border border-white/5 rounded-2xl p-4 text-[14px] font-medium text-foreground placeholder:text-secondary-foreground/30 focus:outline-none focus:border-accent/40 min-h-[100px] resize-none transition-all"
+                    className="w-full bg-secondary/50 border border-white/5 rounded-2xl p-4 text-[14px] font-medium text-foreground placeholder:text-secondary-foreground/30 focus:outline-none focus:border-accent/40 min-h-[120px] resize-none transition-all"
                   />
                </div>
             </div>
 
-            <div className="flex gap-3 mb-4">
+            <div className="flex gap-3 mb-8">
               <button
-                onClick={onClose}
-                className="flex-1 h-16 bg-accent text-white font-black text-[17px] rounded-2xl transition-all active:scale-95 shadow-xl shadow-accent/20 uppercase tracking-widest"
+                onClick={handleSave}
+                disabled={isSaving}
+                className={cn(
+                  "flex-1 h-16 bg-accent text-white font-black text-[17px] rounded-2xl transition-all active:scale-95 shadow-xl shadow-accent/20 uppercase tracking-widest flex items-center justify-center gap-3",
+                  isSaving && "opacity-70 pointer-events-none"
+                )}
               >
-                Apply Changes
+                {isSaving ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  'Apply Changes'
+                )}
               </button>
             </div>
           </motion.div>

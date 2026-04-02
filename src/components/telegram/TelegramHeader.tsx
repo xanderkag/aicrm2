@@ -1,8 +1,9 @@
 'use client'
 
 import React from 'react'
-import { ChevronDown, Send, Camera, MessageCircle, MoreHorizontal, Globe } from 'lucide-react'
+import { ChevronDown, Send, Camera, MessageCircle, MoreHorizontal, Globe, LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useSession, signOut } from 'next-auth/react'
 
 import { ProjectSelector } from './ProjectSelector'
 
@@ -24,6 +25,15 @@ export const TelegramHeader: React.FC<TelegramHeaderProps> = ({
   selectedSource,
   onSourceChange
 }) => {
+  const { data: session } = useSession()
+  const user = session?.user
+
+  // Get initials from name
+  const getInitials = (name?: string | null) => {
+    if (!name) return '??'
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+  }
+
   return (
     <header className="flex flex-col gap-4 px-6 pt-6 sticky top-0 bg-background/80 backdrop-blur-xl z-50 border-b border-white/[0.03] pb-4">
       {/* Search and Project Selector */}
@@ -31,11 +41,26 @@ export const TelegramHeader: React.FC<TelegramHeaderProps> = ({
         <ProjectSelector />
         
         <div className="flex items-center gap-3">
-          <button className="text-secondary-foreground hover:text-white transition-colors">
-             <MoreHorizontal size={24} />
+          <button 
+            onClick={() => signOut({ callbackUrl: '/login' })}
+            className="text-white/20 hover:text-red-500 transition-colors flex items-center gap-2 group"
+            title="Sign Out"
+          >
+             <LogOut size={18} className="group-hover:scale-110 transition-transform" />
           </button>
-          <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center text-white font-black text-[12px] uppercase shadow-lg border border-white/10">
-             AL
+          
+          <div className="flex items-center gap-2">
+            <div className="text-right hidden sm:block">
+               <p className="text-[12px] font-bold text-white leading-none mb-0.5">{user?.name}</p>
+               <p className="text-[10px] text-white/30 font-medium leading-none">{user?.email}</p>
+            </div>
+            <div className="w-9 h-9 rounded-full bg-accent flex items-center justify-center text-white font-black text-[12px] uppercase shadow-lg border border-white/10 overflow-hidden ring-2 ring-white/5">
+               {user?.image ? (
+                 <img src={user.image} alt="User" className="w-full h-full object-cover" />
+               ) : (
+                 getInitials(user?.name)
+               )}
+            </div>
           </div>
         </div>
       </div>
