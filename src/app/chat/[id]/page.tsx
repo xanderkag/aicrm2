@@ -30,6 +30,8 @@ export default function ChatDetailPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [loading, setLoading] = useState(true)
   const [chatName, setChatName] = useState('Loading...')
+  const [isAIEnabled, setIsAIEnabled] = useState(true)
+  const [isAILoading, setIsAILoading] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
 
   // Action Menu State
@@ -43,6 +45,14 @@ export default function ChatDetailPage() {
       
       setLoading(true)
       try {
+        // Fetch client details (like AI status)
+        const clientRes = await fetch(`/api/clients/${id}?schema=${selectedProject.schema_name}`)
+        if (clientRes.ok) {
+          const clientData = await clientRes.json()
+          setIsAIEnabled(clientData.is_ai_enabled ?? true)
+          setChatName(clientData.name || `User ${id}`)
+        }
+
         // Fetch messages
         const response = await fetch(`/api/chat/${id}?schema=${selectedProject.schema_name}`)
         const data = await response.json()
@@ -53,12 +63,12 @@ export default function ChatDetailPage() {
           time: new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
           isSent: m.type === 'response',
           isRead: true,
-          senderType: m.type === 'response' ? 'admin' : 'user',
+          senderType: m.type === 'response' ? (m.sender_name === 'AI' ? 'ai' : 'admin') : 'user',
           senderName: m.sender_name || (m.type === 'response' ? 'Admin' : 'User')
         }))
         
         setMessages(mappedMessages)
-        setChatName(`User ${id}`)
+        if (chatName === 'Loading...') setChatName(`User ${id}`)
       } catch (error) {
         console.error('Failed to fetch chat data:', error)
       } finally {
@@ -85,7 +95,7 @@ export default function ChatDetailPage() {
       isSent: true,
       isRead: false,
       senderType: 'admin',
-      senderName: 'Alexander Liapustin'
+      senderName: 'Manager'
     }
     
     setMessages(prev => [...prev, newMessage])
@@ -94,20 +104,54 @@ export default function ChatDetailPage() {
       await fetch(`/api/chat/${id}?schema=${selectedProject.schema_name}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, senderName: 'Alexander Liapustin' })
+        body: JSON.stringify({ text, senderName: 'Manager' })
       })
     } catch (error) {
       console.error('Failed to send message:', error)
     }
+  }
+
+  const handleTriggerAI = async () => {
+    if (!selectedProject?.schema_name || isAILoading) return
+    setIsAILoading(true)
     
-    setTimeout(() => {
-      if (scrollRef.current) {
-        scrollRef.current.scrollTo({
-          top: scrollRef.current.scrollHeight,
-          behavior: 'smooth'
+    try {
+      // Sending a special "trigger" message or calling a specific AI route
+      // For now, we'll send a POST to the chat with a specific meta to trigger n8n
+      const response = await fetch(`/api/chat/${id}?schema=${selectedProject.schema_name}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          text: '[SYSTEM] Trigger AI Response', 
+          senderName: 'System',
+          isTrigger: true 
         })
+      })
+      
+      if (response.ok) {
+        // We expect n8n to respond and add a new message to the DB
+        // We can just refresh messages after a small delay
+        setTimeout(async () => {
+           const refreshRes = await fetch(`/api/chat/${id}?schema=${selectedProject.schema_name}`)
+           if (refreshRes.ok) {
+             const data = await refreshRes.json()
+             const mapped = data.map((m: any) => ({
+               id: m.id.toString(),
+               text: m.text,
+               time: new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+               isSent: m.type === 'response',
+               senderType: m.type === 'response' ? (m.sender_name === 'AI' ? 'ai' : 'admin') : 'user',
+               senderName: m.sender_name || 'Admin'
+             }))
+             setMessages(mapped)
+           }
+        }, 1500)
       }
-    }, 100)
+    } catch (error) {
+      console.error('Failed to trigger AI:', error)
+    } finally {
+      setIsAILoading(false)
+    }
   }
 
   const handleOpenMenu = (msgId: string, rect: DOMRect) => {
@@ -154,6 +198,10 @@ export default function ChatDetailPage() {
         name={chatName} 
         status="online" 
         avatarColor="bg-accent/20"
+        clientId={id}
+        schema={selectedProject?.schema_name || ''}
+        initialAIStatus={isAIEnabled}
+        onNameUpdate={(newName) => setChatName(newName)}
       />
       
       <div className="fixed top-0 left-0 right-0 h-32 gradient-overlay-top z-40" />
@@ -226,7 +274,11 @@ export default function ChatDetailPage() {
 
       <div className="fixed bottom-0 left-0 right-0 h-32 gradient-overlay-bottom z-40" />
 
-      <ChatInputBar onSend={handleSend} />
+      <ChatInputBar 
+        onSend={handleSend} 
+        onTriggerAI={handleTriggerAI}
+        isAILoading={isAILoading}
+      />
 
       <MessageActionMenu
         isOpen={menuOpen}

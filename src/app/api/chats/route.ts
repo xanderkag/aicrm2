@@ -13,6 +13,7 @@ export async function GET(request: NextRequest) {
         c.id, 
         c.messenger_user_id, 
         c.messenger, 
+        c.name,
         m.message as last_message, 
         m.created_at as last_message_time,
         c.meta
